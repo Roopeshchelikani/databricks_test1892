@@ -5,7 +5,7 @@ on:
     branches:
       - main 
 
-jobs:
+jobs:          
   deploy-dev:
     name: Deploy to DEV
     runs-on: ubuntu-latest
@@ -19,18 +19,16 @@ jobs:
           python-version: '3.10'
 
       - name: Install Databricks CLI
-        run: |
-          pip install databricks-cli
-          databricks --version
-
-      - name: Deploy to DEV
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          databricks bundle deploy \
+        uses: microsoft/install-databricks-cli@v1.0.0
+          
+      - name: Push Notebooks to Dev Workspace
+        uses: microsoft/databricks-import-notebook@v1.0.0
+        with:
+          databricks-host: ${{ secrets.DATABRICKS_HOST }} 
+          databricks-token: ${{ secrets.DATABRICKS_PAT }}
           local-path: ./databricks
           remote-path: /dev_deply
+
 
   deploy-qa:
     name: Deploy to QA
