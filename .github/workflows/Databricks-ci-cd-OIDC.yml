@@ -32,7 +32,7 @@ jobs:
           echo "::add-mask::${databricks_token}" # Mask the token in logs
 
       - name: Set up Databricks CLI
-        uses: microsoft/install-databricks-cli@v1.0.0 # Or use @main for latest
+        uses: databricks/setup-cli@v0.218.0 # Or use @main for latest
 
       - name: Deploy to Databricks Workspace
         env:
