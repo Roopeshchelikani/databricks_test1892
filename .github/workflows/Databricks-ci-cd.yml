@@ -22,7 +22,7 @@ jobs:
         uses: microsoft/install-databricks-cli@v1.0.0
 
       - name: Push Notebooks to Dev Workspace
-        uses: microsoft/databricks-import-notebook@v1.0.0
+        uses: microsoft/databricks-import-notebook@v1.0.0 
         with:
           databricks-host: ${{ secrets.DATABRICKS_HOST }}
           databricks-token: ${{ secrets.DATABRICKS_PAT }}
