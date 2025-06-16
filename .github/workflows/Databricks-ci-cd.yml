@@ -3,7 +3,7 @@ name: Databricks CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - main 
 
 jobs:
   deploy-dev:
