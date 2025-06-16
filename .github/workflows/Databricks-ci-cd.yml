@@ -25,6 +25,6 @@ jobs:
         uses: microsoft/databricks-import-notebook@v1.0.0 
         with:
           databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ secrets.DATABRICKS_PAT }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           local-path: ./databricks
           remote-path: /dev_deploy
