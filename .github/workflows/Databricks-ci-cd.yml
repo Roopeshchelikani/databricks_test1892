@@ -25,12 +25,12 @@ jobs:
 
       - name: Deploy to DEV
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           databricks bundle deploy \
-            --profile dev \
-            --path databricks
+          local-path: ./databricks
+          remote-path: /dev_deply
 
   deploy-qa:
     name: Deploy to QA
@@ -52,15 +52,11 @@ jobs:
 
       - name: Deploy to QA
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_QA_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_QA_TOKEN }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           databricks bundle deploy \
-            --profile qa \
-            --path databricks
+          local-path: ./databricks
+          remote-path: /qa_deply
 
-  deploy-prod:
-    name: Deploy to PROD
-    needs: deploy-qa
-    runs-on: ubuntu-latest
-    environment: productio
+
