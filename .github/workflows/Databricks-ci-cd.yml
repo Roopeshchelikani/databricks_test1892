@@ -1,4 +1,4 @@
-name: Deploy Databricks Asset Bundle
+name: Databricks CI/CD Pipeline
 
 on:
   push:
@@ -6,17 +6,61 @@ on:
       - main
 
 jobs:
-  deploy:
+  deploy-dev:
+    name: Deploy to DEV
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v3
 
-      - name: Deploy Asset Bundle
-        uses: lumiastudios/databricks-asset-bundles-deploy@v1.0.0
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          working-directory: ./databricks-bundle
-          databricks-host: https://my-databricks-workspace.databricks.com
-          databricks-bundle-env: production
-          authentication-type: token
-          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          python-version: '3.10'
+
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+          databricks --version
+
+      - name: Deploy to DEV
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+        run: |
+          databricks bundle deploy \
+            --profile dev \
+            --path databricks
+
+  deploy-qa:
+    name: Deploy to QA
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+          databricks --version
+
+      - name: Deploy to QA
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_QA_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_QA_TOKEN }}
+        run: |
+          databricks bundle deploy \
+            --profile qa \
+            --path databricks
+
+  deploy-prod:
+    name: Deploy to PROD
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: productio
