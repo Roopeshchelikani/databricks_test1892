@@ -46,26 +46,33 @@ jobs:
       # --- REMOVED: The 'Check Databricks CLI configuration' step as 'config' command is not found ---
 
       - name: Deploy to Databricks Workspace
-        # Removed 'env' block here, as we will pass host/token directly as flags
+        env: # Keep the env block here for DATABRICKS_HOST and DATABRICKS_TOKEN
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
+          echo "--- PATH Debugging ---"
+          echo "Current PATH: $PATH" # Print the entire PATH
+          which databricks # Show which 'databricks' executable is found first
+          echo "--- End PATH Debugging ---"
+
           # Ensure this echo matches the actual target path below
           echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
           
           TARGET_PATH="/deployment/dev_OIDC_deploy"
           SOURCE_PATH="./databricks"
+          # Define PARENT_DIR here for current run context, as it's used immediately after.
+          PARENT_DIR=$(dirname "${TARGET_PATH}") 
 
-          # Use ${{ secrets.DATABRICKS_HOST }} directly for the echo
           echo "Ensuring parent directory for ${TARGET_PATH} exists..."
-          # Pass host and token explicitly to mkdirs
-          databricks --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace mkdirs "${PARENT_DIR}" || true 
-          PARENT_DIR=$(dirname "${TARGET_PATH}") # Define PARENT_DIR here for current run context
+          # Revert to using environment variables (no --host/--token flags for older CLI compatibility)
+          databricks workspace mkdirs "${PARENT_DIR}" || true 
 
           echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
-          # Pass host and token explicitly to delete
-          databricks --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace delete "${TARGET_PATH}" --recursive || true
+          # Revert to using environment variables
+          databricks workspace delete "${TARGET_PATH}" --recursive || true
           
           echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
-          # Pass host and token explicitly to import_dir
-          databricks --debug --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
+          # Revert to using environment variables, keep --debug for any new errors
+          databricks --debug workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
           
           echo "Deployment attempt finished."
