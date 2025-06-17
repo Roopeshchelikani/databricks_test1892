@@ -42,7 +42,7 @@ jobs:
           echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
           # Ensure the target directory exists or the SP has rights to create it.
           # Use --overwrite to replace existing files. Remove if you want to avoid overwriting.
-          databricks workspace import_dir ./databricks /deployment/dev_OIDC_deploy --overwrite
+          databricks workspace import_dir ./databricks /deployment/dev_OIDC_deploy 
 
           # If you are using Databricks Asset Bundles, your command would be:
           # databricks bundle deploy -t your_target_name
