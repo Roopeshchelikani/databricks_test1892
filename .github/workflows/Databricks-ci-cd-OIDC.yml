@@ -73,6 +73,6 @@ jobs:
           
           echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
           # Revert to using environment variables, keep --debug for any new errors
-          databricks --debug workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
+          databricks --debug workspace import-dir "${SOURCE_PATH}" "${TARGET_PATH}"
           
           echo "Deployment attempt finished."
