@@ -27,7 +27,7 @@ jobs:
       - name: Get AAD access token for Databricks
         id: get-databricks-token
         run: |
-          echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST }}"
+          echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST }}" 
           databricks_token=$(az account get-access-token --resource ${{ secrets.DATABRICKS_HOST }} --query accessToken -o tsv)
           echo "token_value=${databricks_token}" >> $GITHUB_OUTPUT
           echo "::add-mask::${databricks_token}"
