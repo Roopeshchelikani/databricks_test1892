@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Use latest checkout action
 
       - name: Login to Azure using OIDC 
         uses: azure/login@v1
@@ -30,49 +30,34 @@ jobs:
           echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST_NAME }}" 
           databricks_token=$(az account get-access-token --resource ${{ secrets.DATABRICKS_HOST_NAME }} --query accessToken -o tsv)
           echo "token_value=${databricks_token}" >> $GITHUB_OUTPUT
-          echo "::add-mask::${databricks_token}"
+          echo "::add-mask::${databricks_token}" # Mask the token in logs
 
       - name: Set up Databricks CLI
-        uses: databricks/setup-cli@v0.218.0
-
-      # --- DEBUG STEP: Check Databricks CLI version ---
-      - name: Check Databricks CLI version
-        run: databricks --version
-
-      # --- DEBUG STEP: List local databricks directory contents ---
-      - name: List local databricks directory contents
-        run: ls -la ./databricks || echo "./databricks directory is empty or does not exist."
-
-      # --- REMOVED: The 'Check Databricks CLI configuration' step as 'config' command is not found ---
+        uses: databricks/setup-cli@v0.218.0 # Installs the Databricks CLI
 
       - name: Deploy to Databricks Workspace
-        env: # Keep the env block here for DATABRICKS_HOST and DATABRICKS_TOKEN
+        env: # Environment variables are used by the Databricks CLI for authentication
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
-          echo "--- PATH Debugging ---"
-          echo "Current PATH: $PATH" # Print the entire PATH
-          which databricks # Show which 'databricks' executable is found first
-          echo "--- End PATH Debugging ---"
+          TARGET_PATH="/deployment/dev_OIDC_deploy" # Define your desired target path in Databricks
+          SOURCE_PATH="./databricks" # Define the local source directory in your repository
 
-          # Ensure this echo matches the actual target path below
-          echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
+          echo "Deploying notebooks from ${SOURCE_PATH} to ${TARGET_PATH} on ${DATABRICKS_HOST}"
           
-          TARGET_PATH="/deployment/dev_OIDC_deploy"
-          SOURCE_PATH="./databricks"
-          # Define PARENT_DIR here for current run context, as it's used immediately after.
-          PARENT_DIR=$(dirname "${TARGET_PATH}") 
-
+          # 1. Ensure the parent directory exists (e.g., /deployment).
+          # This prevents errors if /deployment itself doesn't exist.
           echo "Ensuring parent directory for ${TARGET_PATH} exists..."
-          # Revert to using environment variables (no --host/--token flags for older CLI compatibility)
-          databricks workspace mkdirs "${PARENT_DIR}" || true 
+          PARENT_DIR=$(dirname "${TARGET_PATH}") 
+          databricks workspace mkdirs "${PARENT_DIR}" || true # Create parent dir if it doesn't exist. '|| true' prevents step failure.
 
+          # 2. Attempt to delete the target directory if it exists.
+          # The '|| true' ensures the step doesn't fail if the directory is not found on first run.
           echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
-          # Revert to using environment variables
           databricks workspace delete "${TARGET_PATH}" --recursive || true
           
+          # 3. Import the directory with the corrected command name (import-dir)
           echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
-          # Revert to using environment variables, keep --debug for any new errors
-          databricks --debug workspace import-dir "${SOURCE_PATH}" "${TARGET_PATH}"
+          databricks workspace import-dir "${SOURCE_PATH}" "${TARGET_PATH}"
           
           echo "Deployment attempt finished."
