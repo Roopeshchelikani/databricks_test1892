@@ -42,10 +42,22 @@ jobs:
         run: |
           echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
     
-          # Optional: Delete existing directory first for a clean deployment
-          databricks workspace delete /Shared/dev_OIDC_deploy --recursive || true
+          TARGET_PATH="/deployment/dev_OIDC_deploy"
+          SOURCE_PATH="./databricks"
+
+          # 1. Ensure the parent directory exists (e.g., /Shared).
+          # This prevents errors if /Shared itself doesn't exist.
+          echo "Ensuring parent directory for ${TARGET_PATH} exists..."
+          PARENT_DIR=$(dirname "${TARGET_PATH}")
+          databricks workspace mkdirs "${PARENT_DIR}" || true # Create parent dir if it doesn't exist
+
+          # 2. Attempt to delete the target directory if it exists.
+          # The `|| true` ensures the step doesn't fail if the directory is not found.
+          echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
+          databricks workspace delete "${TARGET_PATH}" --recursive || true
     
-          # Import the directory
-          databricks workspace import_dir ./databricks /Shared/dev_OIDC_deploy
+          # 3. Import the directory
+          echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
+          databricks workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
     
           echo "Deployment attempt finished."
