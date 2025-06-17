@@ -10,29 +10,30 @@ jobs:
   deploy-to-databricks:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # Required for OIDC to Azure
-      contents: read   # Required to checkout the repo
+      id-token: write    # Required for OIDC to Azure
+      contents: read     # Required to checkout the repo
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Use latest checkout action
+        uses: actions/checkout@v4
 
       - name: Login to Azure using OIDC
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Ensure this SP has access to this sub if needed for az cli context
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Get AAD access token for Databricks
         id: get-databricks-token
         run: |
-          databricks_token=$(az account get-access-token --resource https://databricks.azure.net --query accessToken -o tsv)
+          echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST }}"
+          databricks_token=$(az account get-access-token --resource ${{ secrets.DATABRICKS_HOST }} --query accessToken -o tsv)
           echo "token_value=${databricks_token}" >> $GITHUB_OUTPUT
-          echo "::add-mask::${databricks_token}" # Mask the token in logs
+          echo "::add-mask::${databricks_token}"
 
       - name: Set up Databricks CLI
-        uses: databricks/setup-cli@v0.218.0 # Or use @main for latest
+        uses: databricks/setup-cli@v0.218.0
 
       - name: Deploy to Databricks Workspace
         env:
@@ -40,12 +41,5 @@ jobs:
           DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
           echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
-          # Ensure the target directory exists or the SP has rights to create it.
-          # Use --overwrite to replace existing files. Remove if you want to avoid overwriting.
           databricks workspace import_dir ./databricks /Shared/dev_OIDC_deploy --overwrite
-
-          # If you are using Databricks Asset Bundles, your command would be:
-          # databricks bundle deploy -t your_target_name
-          # (Assuming you have a databricks.yml and a target defined)
-
           echo "Deployment attempt finished."
