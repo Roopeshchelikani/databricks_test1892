@@ -28,7 +28,7 @@ jobs:
         id: get-databricks-token
         run: |
           echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST_NAME }}" 
-          databricks_token=$(az account get-access-token --resource ${{ secrets.DATABRICKS_HOST_NAME }} --query accessToken -o tsv)
+          databricks_token=$(az account get-access-token --resource https://adb-2810784250248350.10.azuredatabricks.net --query accessToken -o tsv)
           echo "token_value=${databricks_token}" >> $GITHUB_OUTPUT
           echo "::add-mask::${databricks_token}"
 
