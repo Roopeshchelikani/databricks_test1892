@@ -10,60 +10,42 @@ jobs:
   deploy-to-databricks:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write      # Required for OIDC to Azure
-      contents: read       # Required to checkout the repo
+      id-token: write # Required for OIDC to Azure
+      contents: read   # Required to checkout the repo
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # Use latest checkout action
 
-      - name: Login to Azure using OIDC 
+      - name: Login to Azure using OIDC
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Ensure this SP has access to this sub if needed for az cli context
 
       - name: Get AAD access token for Databricks
         id: get-databricks-token
         run: |
-          echo "Fetching token for resource: ${{ secrets.DATABRICKS_HOST_NAME }}" 
           databricks_token=$(az account get-access-token --resource ${{ secrets.DATABRICKS_HOST_NAME }} --query accessToken -o tsv)
           echo "token_value=${databricks_token}" >> $GITHUB_OUTPUT
-          echo "::add-mask::${databricks_token}"
+          echo "::add-mask::${databricks_token}" # Mask the token in logs
 
-      # --- REMOVE: The 'Set up Databricks CLI' step is no longer needed separately ---
-      # - name: Set up Databricks CLI
-      #   uses: databricks/setup-cli@v0.218.0
+      - name: Set up Databricks CLI
+        uses: databricks/setup-cli@v0.218.0 # Or use @main for latest
 
-      # --- REMOVE: The 'Check Databricks CLI version' and 'List local databricks directory contents'
-      #             steps can be removed or integrated into the commands block below if desired. ---
-
-      # --- NEW: Use databricks/databricks-cli-action for all CLI commands ---
       - name: Deploy to Databricks Workspace
-        uses: databricks/databricks-cli-action@v1 # Use the dedicated Databricks CLI action
-        with:
-          databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ steps.get-databricks-token.outputs.token_value }}
-          commands: |
-            echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
-            
-            TARGET_PATH="/deployment/dev_OIDC_deploy"
-            SOURCE_PATH="./databricks"
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
+        run: |
+          echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
+          # Ensure the target directory exists or the SP has rights to create it.
+          # Use --overwrite to replace existing files. Remove if you want to avoid overwriting.
+          databricks workspace import_dir ./databricks /deployment/dev_OIDC_deploy --overwrite
 
-            # 1. Ensure the parent directory exists (e.g., /deployment).
-            echo "Ensuring parent directory for ${TARGET_PATH} exists..."
-            databricks workspace mkdirs "${PARENT_DIR}" || true # PARENT_DIR still needs to be defined if used here
-            PARENT_DIR=$(dirname "${TARGET_PATH}") # Define PARENT_DIR inside commands block as well
-            databricks workspace mkdirs "${PARENT_DIR}" || true
+          # If you are using Databricks Asset Bundles, your command would be:
+          # databricks bundle deploy -t your_target_name
+          # (Assuming you have a databricks.yml and a target defined)
 
-            # 2. Attempt to delete the target directory if it exists.
-            echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
-            databricks workspace delete "${TARGET_PATH}" --recursive || true
-            
-            # 3. Import the directory
-            echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
-            # Removed --debug for clarity, but you can add it back if needed
-            databricks workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
-            
-            echo "Deployment attempt finished."
+          echo "Deployment attempt finished."
