@@ -10,8 +10,8 @@ jobs:
   deploy-to-databricks:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write    # Required for OIDC to Azure
-      contents: read     # Required to checkout the repo
+      id-token: write      # Required for OIDC to Azure
+      contents: read       # Required to checkout the repo
 
     steps:
       - name: Checkout repository
@@ -35,29 +35,36 @@ jobs:
       - name: Set up Databricks CLI
         uses: databricks/setup-cli@v0.218.0
 
+      # --- ADDED DEBUG STEP ---
+      - name: Check Databricks CLI version
+        run: databricks --version
+
+      # --- ADDED DEBUG STEP ---
+      - name: List local databricks directory contents
+        run: ls -la ./databricks || echo "./databricks directory is empty or does not exist."
+
       - name: Deploy to Databricks Workspace
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
           echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
-    
+          
           TARGET_PATH="/deployment/dev_OIDC_deploy"
           SOURCE_PATH="./databricks"
 
-          # 1. Ensure the parent directory exists (e.g., /Shared).
-          # This prevents errors if /Shared itself doesn't exist.
+          # 1. Ensure the parent directory exists (e.g., /deployment).
           echo "Ensuring parent directory for ${TARGET_PATH} exists..."
           PARENT_DIR=$(dirname "${TARGET_PATH}")
-          databricks workspace mkdirs "${PARENT_DIR}" || true # Create parent dir if it doesn't exist
+          databricks workspace mkdirs "${PARENT_DIR}" || true
 
           # 2. Attempt to delete the target directory if it exists.
-          # The `|| true` ensures the step doesn't fail if the directory is not found.
           echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
           databricks workspace delete "${TARGET_PATH}" --recursive || true
-    
+          
           # 3. Import the directory
           echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
-          databricks workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
-    
+          # --- MODIFIED: Added --debug flag for more verbose output ---
+          databricks --debug workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
+          
           echo "Deployment attempt finished."
