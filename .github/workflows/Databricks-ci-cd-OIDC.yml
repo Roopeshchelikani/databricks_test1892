@@ -41,5 +41,11 @@ jobs:
           DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
           echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
-          databricks workspace import_dir ./databricks /Shared/dev_OIDC_deploy 
+    
+          # Optional: Delete existing directory first for a clean deployment
+          databricks workspace delete /Shared/dev_OIDC_deploy --recursive --force || true
+    
+          # Import the directory
+          databricks workspace import_dir ./databricks /Shared/dev_OIDC_deploy
+    
           echo "Deployment attempt finished."
