@@ -43,7 +43,7 @@ jobs:
           echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
     
           # Optional: Delete existing directory first for a clean deployment
-          databricks workspace delete /Shared/dev_OIDC_deploy --recursive --force || true
+          databricks workspace delete /Shared/dev_OIDC_deploy --recursive || true
     
           # Import the directory
           databricks workspace import_dir ./databricks /Shared/dev_OIDC_deploy
