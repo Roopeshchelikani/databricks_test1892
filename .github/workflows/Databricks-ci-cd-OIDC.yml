@@ -43,42 +43,29 @@ jobs:
       - name: List local databricks directory contents
         run: ls -la ./databricks || echo "./databricks directory is empty or does not exist."
 
-      # --- CRUCIAL DEBUG STEP: Check Databricks CLI configuration ---
-      # This step will show if the CLI is correctly picking up the DATABRICKS_HOST and DATABRICKS_TOKEN
-      - name: Check Databricks CLI configuration
-        env: # Environment variables must be explicitly set for THIS step
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
-        run: |
-          echo "Checking Databricks CLI config profile 'DEFAULT'..."
-          # This command will output the host and token it is using (masked in logs)
-          databricks config get --profile DEFAULT 
+      # --- REMOVED: The 'Check Databricks CLI configuration' step as 'config' command is not found ---
 
       - name: Deploy to Databricks Workspace
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
+        # Removed 'env' block here, as we will pass host/token directly as flags
         run: |
-          # NOTE: There's an inconsistency here.
-          # The echo says /Shared/dev_OIDC_deploy, but the command uses /deployment/dev_OIDC_deploy.
-          # Please ensure these paths match your intention. I'll keep the /deployment one for the command as per your last code.
+          # Ensure this echo matches the actual target path below
           echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
           
           TARGET_PATH="/deployment/dev_OIDC_deploy"
           SOURCE_PATH="./databricks"
 
-          # 1. Ensure the parent directory exists (e.g., /deployment).
+          # Use ${{ secrets.DATABRICKS_HOST }} directly for the echo
           echo "Ensuring parent directory for ${TARGET_PATH} exists..."
-          PARENT_DIR=$(dirname "${TARGET_PATH}")
-          databricks workspace mkdirs "${PARENT_DIR}" || true # Create parent dir if it doesn't exist
+          # Pass host and token explicitly to mkdirs
+          databricks --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace mkdirs "${PARENT_DIR}" || true 
+          PARENT_DIR=$(dirname "${TARGET_PATH}") # Define PARENT_DIR here for current run context
 
-          # 2. Attempt to delete the target directory if it exists.
           echo "Attempting to delete existing directory ${TARGET_PATH} if it exists..."
-          databricks workspace delete "${TARGET_PATH}" --recursive || true # --recursive is correct for directories
-
-          # 3. Import the directory
+          # Pass host and token explicitly to delete
+          databricks --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace delete "${TARGET_PATH}" --recursive || true
+          
           echo "Importing notebooks from ${SOURCE_PATH} to ${TARGET_PATH}..."
-          # The --debug flag is essential here to get more verbose output if it fails again
-          databricks --debug workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
+          # Pass host and token explicitly to import_dir
+          databricks --debug --host ${{ secrets.DATABRICKS_HOST }} --token ${{ steps.get-databricks-token.outputs.token_value }} workspace import_dir "${SOURCE_PATH}" "${TARGET_PATH}"
           
           echo "Deployment attempt finished."
