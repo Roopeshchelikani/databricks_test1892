@@ -40,7 +40,7 @@ jobs:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ steps.get-databricks-token.outputs.token_value }}
         run: |
-          echo "Deploying notebooks from ./databricks to /Shared/dev_OIDC_deploy on ${DATABRICKS_HOST}"
+          echo "Deploying notebooks from ./databricks to /deployment/dev_OIDC_deploy on ${DATABRICKS_HOST}"
     
           TARGET_PATH="/deployment/dev_OIDC_deploy"
           SOURCE_PATH="./databricks"
